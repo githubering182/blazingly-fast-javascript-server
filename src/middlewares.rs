@@ -17,15 +17,15 @@ impl Middleware {
     where
         F: Fn(&Request, &Response) + Send + 'static,
     {
-        if self.handler.is_none() {
-            self.handler = Some(Box::new(f));
-        } else {
+        if let Some(_) = self.handler {
             let last = Middleware::get_last(self);
             last.next = Some(Box::new(Middleware {
                 handler: Some(Box::new(f)),
                 next: None,
             }));
+            return;
         }
+        self.handler = Some(Box::new(f));
     }
 
     fn get_last(current: &mut Middleware) -> &mut Middleware {
