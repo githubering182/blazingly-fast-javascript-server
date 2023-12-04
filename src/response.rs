@@ -7,9 +7,14 @@ pub struct Response {
     pub body: Option<String>,
 }
 
+impl Default for Response {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl Response {
     pub fn new() -> Self {
-        Response {
+        Self {
             http: "HTTP/1.1",
             status: 200,
             headers: HashMap::new(),
@@ -26,7 +31,7 @@ impl Response {
     }
 
     pub fn get_response(mut self) -> String {
-        let body = self.body.take().unwrap_or_else(|| "".to_string());
+        let body = self.body.take().unwrap_or_default();
 
         assert_eq!(
             self.headers

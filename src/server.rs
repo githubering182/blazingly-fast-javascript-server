@@ -16,7 +16,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(host: &str, port: usize) -> Self {
-        Server {
+        Self {
             address: format!("{host}:{port}"),
             routes: Arc::new(RwLock::new(HashMap::new())),
             middleware: Middleware::new(),

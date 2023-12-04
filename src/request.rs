@@ -10,9 +10,14 @@ pub struct Request {
     pub valid: bool,
 }
 
+impl Default for Request {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl Request {
     pub fn new() -> Self {
-        Request {
+        Self {
             method: None,
             route: None,
             http: None,
@@ -51,8 +56,8 @@ impl Request {
         }
         println!(
             "NEW {}: {}",
-            self.method.as_deref().unwrap_or_else(|| "no method"),
-            self.route.as_deref().unwrap_or_else(|| "no route")
+            self.method.as_deref().unwrap_or("no method"),
+            self.route.as_deref().unwrap_or("no route")
         );
     }
 }

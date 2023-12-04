@@ -6,7 +6,7 @@ use std::{
     thread::{spawn, JoinHandle},
 };
 
-use crate::{middlewares::Middleware, pages::*, request::Request, response::Response, Handler};
+use crate::{middlewares::Middleware, pages::*, request::Request, Handler};
 
 pub struct Worker {
     pub id: usize,
@@ -18,17 +18,17 @@ impl Worker {
         id: usize,
         receiver: Arc<Mutex<Receiver<Result<TcpStream, Error>>>>,
         routes: Arc<RwLock<HashMap<String, Handler>>>,
-        middleware: &Middleware,
+        _middleware: &Middleware,
     ) -> Self {
         println!("Worker {id} booting...");
 
-        let mut worker = Worker { id, thread: None };
+        let mut worker = Self { id, thread: None };
 
         let thread = spawn(move || loop {
             let stream = receiver.lock().unwrap().recv();
 
             match stream {
-                Ok(stream) => Worker::handle_connection(stream, &routes),
+                Ok(stream) => Self::handle_connection(stream, &routes),
                 Err(e) => println!("Error getting stream: {:?}", e),
             }
         });
@@ -50,7 +50,7 @@ impl Worker {
         let mut stream = stream.unwrap();
         let mut request = Request::new();
 
-        Worker::parse_stream(&mut request, &stream);
+        Self::parse_stream(&mut request, &stream);
 
         request.print_request();
 

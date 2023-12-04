@@ -5,9 +5,15 @@ pub struct Middleware {
     pub next: Option<Box<Middleware>>,
 }
 
+impl Default for Middleware {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Middleware {
     pub fn new() -> Self {
-        Middleware {
+        Self {
             handler: None,
             next: None,
         }
@@ -17,9 +23,9 @@ impl Middleware {
     where
         F: Fn(&Request, &Response) + Send + 'static,
     {
-        if let Some(_) = self.handler {
-            let last = Middleware::get_last(self);
-            last.next = Some(Box::new(Middleware {
+        if self.handler.is_some() {
+            let last = Self::get_last(self);
+            last.next = Some(Box::new(Self {
                 handler: Some(Box::new(f)),
                 next: None,
             }));
@@ -28,9 +34,9 @@ impl Middleware {
         self.handler = Some(Box::new(f));
     }
 
-    fn get_last(current: &mut Middleware) -> &mut Middleware {
+    fn get_last(current: &mut Self) -> &mut Self {
         match current.next {
-            Some(ref mut next) => Middleware::get_last(next),
+            Some(ref mut next) => Self::get_last(next),
             None => current,
         }
     }
@@ -40,9 +46,8 @@ impl Middleware {
             handler(request, response);
         }
 
-        match self.next {
-            Some(ref next) => next.handle(request, response),
-            None => return,
+        if let Some(ref next) = self.next {
+            next.handle(request, response);
         }
     }
 }
