@@ -1,4 +1,5 @@
-use crate::{request::Request, response::Response, MiddlewareHandler};
+use crate::{request::Request, MiddlewareHandler};
+use std::io::Error;
 
 pub struct Middleware {
     pub handler: Option<MiddlewareHandler>,
@@ -21,7 +22,7 @@ impl Middleware {
 
     pub fn add_middleware<F>(&mut self, f: F)
     where
-        F: Fn(&Request, &Response) + Send + 'static,
+        F: Fn(&Request) -> Result<(), Error> + Sync + Send + 'static,
     {
         if self.handler.is_some() {
             let last = Self::get_last(self);
@@ -41,13 +42,15 @@ impl Middleware {
         }
     }
 
-    pub fn handle(&self, request: &mut Request, response: &mut Response) {
+    pub fn handle(&self, request: &mut Request) -> Result<(), Error> {
         if let Some(ref handler) = self.handler {
-            handler(request, response);
+            handler(request)?;
         }
 
         if let Some(ref next) = self.next {
-            next.handle(request, response);
+            next.handle(request)?;
         }
+
+        Ok(())
     }
 }

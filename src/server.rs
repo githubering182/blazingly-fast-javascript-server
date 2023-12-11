@@ -11,7 +11,7 @@ use std::{
 pub struct Server {
     address: String,
     routes: Arc<RwLock<HashMap<String, Handler>>>,
-    middleware: Middleware,
+    middleware: Arc<RwLock<Middleware>>,
 }
 
 impl Server {
@@ -19,7 +19,7 @@ impl Server {
         Self {
             address: format!("{host}:{port}"),
             routes: Arc::new(RwLock::new(HashMap::new())),
-            middleware: Middleware::new(),
+            middleware: Arc::new(RwLock::new(Middleware::new())),
         }
     }
 
@@ -58,11 +58,11 @@ impl Server {
         self
     }
 
-    pub fn add_middleware<F>(mut self, f: F) -> Self
+    pub fn add_middleware<F>(self, f: F) -> Self
     where
-        F: Fn(&Request, &Response) + Send + 'static,
+        F: Fn(&Request) -> Result<(), Error> + Sync + Send + 'static,
     {
-        self.middleware.add_middleware(f);
+        self.middleware.write().unwrap().add_middleware(f);
         self
     }
 }

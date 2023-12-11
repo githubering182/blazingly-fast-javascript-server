@@ -6,7 +6,7 @@ use std::{
     thread::{spawn, JoinHandle},
 };
 
-use crate::{middlewares::Middleware, pages::*, request::Request, Handler};
+use crate::{middlewares::Middleware, pages::*, request::Request, response::Response, Handler};
 
 pub struct Worker {
     pub id: usize,
@@ -18,7 +18,7 @@ impl Worker {
         id: usize,
         receiver: Arc<Mutex<Receiver<Result<TcpStream, Error>>>>,
         routes: Arc<RwLock<HashMap<String, Handler>>>,
-        _middleware: &Middleware,
+        middleware: Arc<RwLock<Middleware>>,
     ) -> Self {
         println!("Worker {id} booting...");
 
@@ -28,8 +28,11 @@ impl Worker {
             let stream = receiver.lock().unwrap().recv();
 
             match stream {
-                Ok(stream) => Self::handle_connection(stream, &routes),
-                Err(e) => println!("Error getting stream: {:?}", e),
+                Ok(stream) => Self::handle_connection(stream, &routes, &middleware),
+                Err(e) => {
+                    println!("Error getting stream: {:?}", e);
+                    break;
+                }
             }
         });
 
@@ -41,6 +44,7 @@ impl Worker {
     fn handle_connection(
         stream: Result<TcpStream, Error>,
         routes: &Arc<RwLock<HashMap<String, Handler>>>,
+        middleware: &Arc<RwLock<Middleware>>,
     ) {
         if stream.is_err() {
             println!("Stream handle Error");
@@ -55,16 +59,31 @@ impl Worker {
         request.print_request();
 
         let response = match request.valid {
-            false => error(),
-            true => match routes.read().unwrap().get(request.route.as_ref().unwrap()) {
-                Some(handler) => handler(&request),
-                _ => not_found(),
-            },
+            false => error(None),
+            true => Self::proceed_request(request, routes, middleware),
         };
 
         stream
             .write_all(response.get_response().as_bytes())
             .unwrap();
+    }
+
+    fn proceed_request(
+        mut request: Request,
+        routes: &Arc<RwLock<HashMap<String, Handler>>>,
+        middleware: &Arc<RwLock<Middleware>>,
+    ) -> Response {
+        match middleware.read().unwrap().handle(&mut request) {
+            Err(e) => {
+                return error(Some(e));
+            }
+            Ok(_) => (),
+        }
+
+        match routes.read().unwrap().get(request.route.as_ref().unwrap()) {
+            Some(handler) => handler(&request),
+            _ => not_found(),
+        }
     }
 
     fn parse_stream(request: &mut Request, stream: &TcpStream) {

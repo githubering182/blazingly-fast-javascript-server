@@ -17,7 +17,7 @@ pub struct ThreadPool {
 impl ThreadPool {
     pub fn new(
         routes: &Arc<RwLock<HashMap<String, Handler>>>,
-        middleware: &Middleware,
+        middleware: &Arc<RwLock<Middleware>>,
         workers: usize,
     ) -> Self {
         assert!(workers > 0);
@@ -26,7 +26,14 @@ impl ThreadPool {
         let receiver = Arc::new(Mutex::new(receiver));
 
         let workers = (1..=workers)
-            .map(|id| Worker::new(id, Arc::clone(&receiver), Arc::clone(routes), middleware))
+            .map(|id| {
+                Worker::new(
+                    id,
+                    Arc::clone(&receiver),
+                    Arc::clone(routes),
+                    Arc::clone(middleware),
+                )
+            })
             .collect::<Vec<Worker>>();
 
         ThreadPool {
