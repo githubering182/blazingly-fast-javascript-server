@@ -1,5 +1,5 @@
-pub mod pages;
+pub mod fallback_handlers;
 pub mod pool;
 pub mod worker;
 
-use super::{Handler, Middleware, Request, Response};
+use super::{Middleware, Request, Response, Route};

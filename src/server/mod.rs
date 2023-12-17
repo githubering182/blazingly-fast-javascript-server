@@ -1,15 +1,15 @@
-pub mod middleware;
-pub mod request;
-pub mod response;
-pub mod workers;
+mod server;
 
-pub mod server;
+mod middlewares;
+mod request;
+mod response;
+mod route;
+mod workers;
 
-use middleware::middleware::Middleware;
+use middlewares::{defaults, middleware::Middleware};
+use route::{Method, Route};
 use workers::pool::ThreadPool;
 
-pub use request::request::Request;
-pub use response::response::Response;
+pub use request::Request;
+pub use response::Response;
 pub use server::Server;
-
-type Handler = Box<dyn Fn(&Request) -> Response + Sync + Send + 'static>;

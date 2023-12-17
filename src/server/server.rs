@@ -1,4 +1,4 @@
-use super::{Handler, Middleware, Request, Response, ThreadPool};
+use super::{defaults, Method, Middleware, Request, Response, Route, ThreadPool};
 use std::{
     collections::HashMap,
     io::Error,
@@ -8,17 +8,22 @@ use std::{
 
 pub struct Server {
     address: String,
-    routes: Arc<RwLock<HashMap<String, Handler>>>,
+    routes: Arc<RwLock<HashMap<String, Route>>>,
     middleware: Arc<RwLock<Middleware>>,
 }
 
 impl Server {
     pub fn new(host: &str, port: usize) -> Self {
-        Self {
+        let server = Self {
             address: format!("{host}:{port}"),
             routes: Arc::new(RwLock::new(HashMap::new())),
             middleware: Arc::new(RwLock::new(Middleware::new())),
-        }
+        };
+
+        server.add_middleware(|r| {
+            defaults::form_from_reader(r);
+            Ok(())
+        })
     }
 
     pub fn listen(&self, workers: usize) -> Result<(), Error> {
@@ -34,31 +39,27 @@ impl Server {
 }
 
 impl Server {
-    pub fn get<F>(self, route: &str, f: F) -> Self
+    pub fn get<F>(self, path: &str, f: F) -> Self
     where
         F: Fn(&Request) -> Response + Sync + Send + 'static,
     {
-        self.routes
-            .write()
-            .unwrap()
-            .insert(route.to_string(), Box::new(f));
+        let route = Route::new(Method::GET, Box::new(f));
+        self.routes.write().unwrap().insert(path.to_string(), route);
         self
     }
 
-    pub fn post<F>(self, route: &str, f: F) -> Self
+    pub fn post<F>(self, path: &str, f: F) -> Self
     where
         F: Fn(&Request) -> Response + Sync + Send + 'static,
     {
-        self.routes
-            .write()
-            .unwrap()
-            .insert(route.to_string(), Box::new(f));
+        let route = Route::new(Method::POST, Box::new(f));
+        self.routes.write().unwrap().insert(path.to_string(), route);
         self
     }
 
     pub fn add_middleware<F>(self, f: F) -> Self
     where
-        F: Fn(&Request) -> Result<(), Error> + Sync + Send + 'static,
+        F: Fn(&mut Request) -> Result<(), Error> + Sync + Send + 'static,
     {
         self.middleware.write().unwrap().add_middleware(f);
         self

@@ -1,4 +1,4 @@
-use super::{worker::Worker, Handler, Middleware};
+use super::{worker::Worker, Middleware, Route};
 use std::{
     collections::HashMap,
     io::Error,
@@ -16,7 +16,7 @@ pub struct ThreadPool {
 
 impl ThreadPool {
     pub fn new(
-        routes: &Arc<RwLock<HashMap<String, Handler>>>,
+        routes: &Arc<RwLock<HashMap<String, Route>>>,
         middleware: &Arc<RwLock<Middleware>>,
         workers: usize,
     ) -> Self {

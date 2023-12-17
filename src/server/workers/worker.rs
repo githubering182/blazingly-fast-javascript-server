@@ -1,7 +1,7 @@
-use super::{pages::*, Handler, Middleware, Request, Response};
+use super::{fallback_handlers::*, Middleware, Request, Route};
 use std::{
     collections::HashMap,
-    io::{prelude::*, BufReader, Error},
+    io::{prelude::*, Error},
     net::TcpStream,
     sync::{mpsc::Receiver, Arc, Mutex, RwLock},
     thread::{spawn, JoinHandle},
@@ -16,7 +16,7 @@ impl Worker {
     pub fn new(
         id: usize,
         receiver: Arc<Mutex<Receiver<Result<TcpStream, Error>>>>,
-        routes: Arc<RwLock<HashMap<String, Handler>>>,
+        routes: Arc<RwLock<HashMap<String, Route>>>,
         middleware: Arc<RwLock<Middleware>>,
     ) -> Self {
         println!("Worker {id} booting...");
@@ -42,7 +42,7 @@ impl Worker {
 
     fn handle_connection(
         stream: Result<TcpStream, Error>,
-        routes: &Arc<RwLock<HashMap<String, Handler>>>,
+        routes: &Arc<RwLock<HashMap<String, Route>>>,
         middleware: &Arc<RwLock<Middleware>>,
     ) {
         if stream.is_err() {
@@ -51,15 +51,26 @@ impl Worker {
         }
 
         let mut stream = stream.unwrap();
-        let mut request = Request::new();
+        let mut request = Request::new(&stream);
 
-        Self::parse_stream(&mut request, &stream);
+        if middleware.read().unwrap().handle(&mut request).is_ok() {
+            request.is_valid = true;
+        };
 
         request.print_request();
 
-        let response = match request.valid {
-            false => error(None),
-            true => Self::proceed_request(request, routes, middleware),
+        let request_route = match request.route {
+            Some(ref route) => route,
+            None => "",
+        };
+
+        let response = match routes.read().unwrap().get(request_route) {
+            _ if !request.is_valid => error(None),
+            Some(route_handler) if Worker::check_method(&request, route_handler) => {
+                let handler = route_handler.handler.as_ref();
+                handler(&request)
+            }
+            _ => not_found(),
         };
 
         stream
@@ -67,26 +78,7 @@ impl Worker {
             .unwrap();
     }
 
-    fn proceed_request(
-        mut request: Request,
-        routes: &Arc<RwLock<HashMap<String, Handler>>>,
-        middleware: &Arc<RwLock<Middleware>>,
-    ) -> Response {
-        match middleware.read().unwrap().handle(&mut request) {
-            Err(e) => {
-                return error(Some(e));
-            }
-            Ok(_) => (),
-        }
-
-        match routes.read().unwrap().get(request.route.as_ref().unwrap()) {
-            Some(handler) => handler(&request),
-            _ => not_found(),
-        }
-    }
-
-    fn parse_stream(request: &mut Request, stream: &TcpStream) {
-        let buf_reader = BufReader::new(stream);
-        request.form_from_reader(buf_reader);
+    fn check_method(request: &Request, handler: &Route) -> bool {
+        request.method.as_ref().unwrap() == &handler.method
     }
 }

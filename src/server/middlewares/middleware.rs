@@ -21,7 +21,7 @@ impl Middleware {
 
     pub fn add_middleware<F>(&mut self, f: F)
     where
-        F: Fn(&Request) -> Result<(), Error> + Sync + Send + 'static,
+        F: Fn(&mut Request) -> Result<(), Error> + Sync + Send + 'static,
     {
         if self.handler.is_some() {
             let last = Self::get_last(self);
