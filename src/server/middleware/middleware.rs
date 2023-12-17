@@ -1,5 +1,4 @@
-use crate::{request::Request, MiddlewareHandler};
-use std::io::Error;
+use super::{Error, MiddlewareHandler, Request};
 
 pub struct Middleware {
     pub handler: Option<MiddlewareHandler>,

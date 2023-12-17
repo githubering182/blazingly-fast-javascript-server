@@ -1,6 +1,4 @@
-use crate::{
-    middlewares::Middleware, pool::ThreadPool, request::Request, response::Response, Handler,
-};
+use super::{Handler, Middleware, Request, Response, ThreadPool};
 use std::{
     collections::HashMap,
     io::Error,

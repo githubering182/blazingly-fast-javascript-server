@@ -1,3 +1,4 @@
+use super::{pages::*, Handler, Middleware, Request, Response};
 use std::{
     collections::HashMap,
     io::{prelude::*, BufReader, Error},
@@ -5,8 +6,6 @@ use std::{
     sync::{mpsc::Receiver, Arc, Mutex, RwLock},
     thread::{spawn, JoinHandle},
 };
-
-use crate::{middlewares::Middleware, pages::*, request::Request, response::Response, Handler};
 
 pub struct Worker {
     pub id: usize,

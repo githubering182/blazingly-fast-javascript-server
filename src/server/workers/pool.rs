@@ -1,4 +1,4 @@
-use crate::{middlewares::Middleware, worker::Worker, Handler};
+use super::{worker::Worker, Handler, Middleware};
 use std::{
     collections::HashMap,
     io::Error,

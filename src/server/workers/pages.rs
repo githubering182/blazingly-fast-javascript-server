@@ -1,4 +1,4 @@
-use crate::response::Response;
+use super::Response;
 use std::io::Error;
 
 pub fn error(error: Option<Error>) -> Response {

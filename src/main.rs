@@ -1,5 +1,5 @@
-use web::response::Response;
-use web::server::Server;
+pub mod server;
+use server::{Response, Server};
 
 fn main() {
     let result = Server::new("0.0.0.0", 9000)
